@@ -30,6 +30,24 @@ final class ModelValidationTest extends TestCaseBase
         $this->assertSame('y', $json['metadata']['nested']['x']);
     }
 
+    public function testReadableModelsSupportExpansion(): void
+    {
+        $this->makeClient(static function () {
+            return [
+                'status' => 200,
+                'headers' => [],
+                'body' => json_encode(['id' => 'cus_1']),
+            ];
+        });
+
+        Customer::read('cus_1', ['invoice_settings.default_payment_method']);
+
+        $this->assertSame(
+            ['invoice_settings.default_payment_method'],
+            $this->lastRequest()['options']['query']['expand']
+        );
+    }
+
     public function testUuidHelper(): void
     {
         $id = Uuid::v4();

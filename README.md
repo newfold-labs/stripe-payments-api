@@ -84,7 +84,17 @@ Constructing `StripeClient` also registers it as the process-wide default used b
 | `Product` | `:env/:brand/product(s)` | `create`, `read`, `update`, `delete`/`archive`, `all` |
 | `Price` | `:env/:brand/product/:id/price(s)` | `create_for_product`, `all_for_product` |
 | `PaymentLink` | `:env/:brand/payment-link(s)` | `create`, `read`, `update`, `deactivate`, `all`, `update_line_items` |
+| `CheckoutSession` | `:env/:brand/checkout-session` | `create`, `read` |
+| `Subscription` | `:env/:brand/subscription` | `read` |
+| `BillingPortalSession` | `:env/:brand/billing-portal-session` | `create` |
 
+Every model supporting `read()` accepts an optional array of
+[Stripe fields to expand](https://docs.stripe.com/expand) as its second argument:
+
+```php
+$session = CheckoutSession::read('cs_test_123', ['subscription']);
+$subscription = Subscription::read('sub_123', ['items.data.price']);
+```
 
 ## Request signatures
 
