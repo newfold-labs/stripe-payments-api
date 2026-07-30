@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<ruleset name="Stripe Payments API">
+    <description>PSR-12 coding standard for Stripe Payments API PHP Client.</description>
+    <file>src</file>
+    <file>tests</file>
+    <rule ref="PSR12">
+        <!-- Preserve WordPress Client snake_case API (get_data_structure, update_line_items, ...). -->
+        <exclude name="PSR1.Methods.CamelCapsMethodName"/>
+    </rule>
+    <rule ref="PSR2.Classes.PropertyDeclaration.Underscore">
+        <severity/>
+    </rule>
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="160"/>
+            <property name="absoluteLineLimit" value="200"/>
+        </properties>
+    </rule>
+</ruleset>

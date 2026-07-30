@@ -1,0 +1,16 @@
+.*
+.*/
+vendor/bin
+vendor/phpunit
+vendor/doctrine
+vendor/myclabs
+vendor/nikic
+vendor/phar-io
+vendor/sebastian
+vendor/squizlabs
+vendor/theseer
+tests/
+*.neon
+*.dist
+composer.json
+composer.lock

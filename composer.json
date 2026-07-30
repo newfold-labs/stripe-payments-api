@@ -1,0 +1,46 @@
+{
+    "name": "newfold-labs/stripe-payments-api",
+    "description": "A client for the YITH Stripe Payments middleware API (accounts, customers, intents, products, payment links, and more).",
+    "type": "library",
+    "license": "GPL-2.0-or-later",
+  "version" : "1.0.0",
+    "keywords": [
+        "stripe",
+        "payments",
+        "api-client",
+        "newfold",
+        "bluehost"
+    ],
+    "require": {
+        "php": "^8.0",
+        "ext-json": "*",
+        "guzzlehttp/guzzle": "^7.5",
+        "guzzlehttp/psr7": "^2.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6",
+        "squizlabs/php_codesniffer": "^3.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bluehost\\StripePaymentsAPI\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Bluehost\\StripePaymentsAPI\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "cs": "phpcs"
+    },
+    "config": {
+        "sort-packages": true,
+        "platform": {
+            "php": "8.0.0"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
