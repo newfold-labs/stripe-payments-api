@@ -71,10 +71,12 @@ class Account extends ModelAbstract
                     'default' => null,
                 ],
                 'secret' => [
+                    // Response-only (populated by the middleware); no default here, or
+                    // create() would send `secret: ""` on every account creation request.
                     'label' => 'Account secret',
                     'type' => 'text',
                     'required' => false,
-                    'default' => '',
+                    'default' => null,
                 ],
                 'email' => [
                     'label' => 'Admin email',
@@ -96,10 +98,11 @@ class Account extends ModelAbstract
                     'default' => null,
                 ],
                 'pmd_enabled' => [
+                    // Response-only; no default, same reasoning as 'secret' above.
                     'label' => 'Domain enabled',
                     'type' => 'bool',
                     'required' => false,
-                    'default' => false,
+                    'default' => null,
                 ],
                 'pmd_statuses' => [
                     'label' => 'Payment Method statuses for Domain',
@@ -108,16 +111,18 @@ class Account extends ModelAbstract
                     'default' => null,
                 ],
                 'charges_enabled' => [
+                    // Response-only; no default, same reasoning as 'secret' above.
                     'label' => 'Charges enabled flag',
                     'type' => 'bool',
                     'required' => false,
-                    'default' => false,
+                    'default' => null,
                 ],
                 'details_submitted' => [
+                    // Response-only; no default, same reasoning as 'secret' above.
                     'label' => 'Details submitted flag',
                     'type' => 'bool',
                     'required' => false,
-                    'default' => false,
+                    'default' => null,
                 ],
                 'verify_url' => [
                     'label' => 'Verification URL',
