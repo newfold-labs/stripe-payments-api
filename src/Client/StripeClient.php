@@ -11,7 +11,7 @@ use Bluehost\StripePaymentsAPI\Http\GuzzleTransport;
 use Bluehost\StripePaymentsAPI\Http\TransportInterface;
 use Bluehost\StripePaymentsAPI\Security\InMemorySignatureStore;
 use Bluehost\StripePaymentsAPI\Security\SignatureStoreInterface;
-use Bluehost\StripePaymentsAPI\Security\Uuid;
+use Ramsey\Uuid\Uuid;
 
 /**
  * HTTP client for the YITH Stripe Payments middleware.
@@ -177,7 +177,7 @@ final class StripeClient
             $args['headers'] ?? []
         );
 
-        $signature = Uuid::v4();
+        $signature = Uuid::uuid4()->toString();
         $headers['X-Request-Signature'] = $signature;
         $this->signatureStore->put($signature, self::SIGNATURE_TTL);
 
