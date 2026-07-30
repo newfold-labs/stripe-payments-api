@@ -7,8 +7,8 @@ namespace Bluehost\StripePaymentsAPI\Tests\Unit;
 use Bluehost\StripePaymentsAPI\Config;
 use Bluehost\StripePaymentsAPI\Exceptions\ApiException;
 use Bluehost\StripePaymentsAPI\Models\Customer;
-use Bluehost\StripePaymentsAPI\Security\Uuid;
 use Bluehost\StripePaymentsAPI\Tests\TestCaseBase;
+use Ramsey\Uuid\Uuid;
 
 final class StripeClientTest extends TestCaseBase
 {
