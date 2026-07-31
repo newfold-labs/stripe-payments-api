@@ -23,10 +23,24 @@ abstract class TestCaseBase extends TestCase
         ];
     }
 
-    protected function makeClient(?callable $responder = null): StripeClient
+    protected function makeClient(?callable $responder = null, $authToken = 'test-token'): StripeClient
+    {
+        return new StripeClient(
+            new Config(
+                baseUri: 'https://payments.example.com/api',
+                environment: Config::ENVIRONMENT_TEST,
+                brand: 'bluehost',
+                authToken: $authToken
+            ),
+            $this->makeTransport($responder)
+        );
+    }
+
+    protected function makeTransport(?callable $responder = null): TransportInterface
     {
         $this->requests = [];
-        $transport = new class ($this, $responder) implements TransportInterface {
+
+        return new class ($this, $responder) implements TransportInterface {
             /** @var TestCaseBase */
             private $test;
             /** @var callable|null */
@@ -53,16 +67,6 @@ abstract class TestCaseBase extends TestCase
                 ];
             }
         };
-
-        return new StripeClient(
-            new Config(
-                baseUri: 'https://payments.example.com/api',
-                environment: Config::ENVIRONMENT_TEST,
-                brand: 'bluehost',
-                authToken: 'test-token'
-            ),
-            $transport
-        );
     }
 
     protected function lastRequest(): array

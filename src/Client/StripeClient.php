@@ -9,8 +9,8 @@ use Bluehost\StripePaymentsAPI\Exceptions\ApiException;
 use Bluehost\StripePaymentsAPI\Exceptions\ProcessorException;
 use Bluehost\StripePaymentsAPI\Http\GuzzleTransport;
 use Bluehost\StripePaymentsAPI\Http\TransportInterface;
-use Bluehost\StripePaymentsAPI\Security\InMemorySignatureStore;
-use Bluehost\StripePaymentsAPI\Security\SignatureStoreInterface;
+use Bluehost\StripePaymentsAPI\Store\InMemoryStore;
+use Bluehost\StripePaymentsAPI\Store\StoreInterface;
 use Ramsey\Uuid\Uuid;
 
 /**
@@ -23,21 +23,25 @@ final class StripeClient
 {
     public const SIGNATURE_TTL = 600;
 
+    private const SIGNATURE_KEY_PREFIX = 'signature.';
+    private const LAST_SIGNATURE_KEY = 'signature.last';
+    private const ACCOUNT_TOKEN_KEY = 'account.token';
+
     private static ?self $default = null;
 
     private Config $config;
     private TransportInterface $transport;
-    private SignatureStoreInterface $signatureStore;
+    private StoreInterface $store;
     private string $log = '';
     private ?\Exception $lastError = null;
 
     public function __construct(
         Config $config,
         ?TransportInterface $transport = null,
-        ?SignatureStoreInterface $signatureStore = null
+        ?StoreInterface $store = null
     ) {
         $this->config = $config;
-        $this->signatureStore = $signatureStore ?? new InMemorySignatureStore();
+        $this->store = $store ?? new InMemoryStore();
         $this->transport = $transport ?? new GuzzleTransport($config);
         self::setDefault($this);
     }
@@ -63,9 +67,9 @@ final class StripeClient
         return $this->config;
     }
 
-    public function getSignatureStore(): SignatureStoreInterface
+    public function getStore(): StoreInterface
     {
-        return $this->signatureStore;
+        return $this->store;
     }
 
     public function getMessageLog(): string
@@ -80,7 +84,62 @@ final class StripeClient
 
     public function getLastSignature(): ?string
     {
-        return $this->signatureStore->getLast();
+        $signature = $this->store->get(self::LAST_SIGNATURE_KEY);
+
+        return is_string($signature) && $signature !== '' ? $signature : null;
+    }
+
+    /**
+     * Verifies a signature challenge against a request signature this client
+     * previously sent, e.g. from a middleware callback endpoint.
+     */
+    public function verifySignature(string $signature): bool
+    {
+        if ($signature === '') {
+            return false;
+        }
+
+        return $this->store->get(self::signatureKey($signature)) !== null;
+    }
+
+    /**
+     * Static facade, mirroring {@see self::call()}.
+     */
+    public static function verify(string $signature): bool
+    {
+        return self::getDefault()->verifySignature($signature);
+    }
+
+    /**
+     * Stores the bearer token for the currently connected account, so it is
+     * picked up automatically on subsequent requests without callers having
+     * to pass it (or a callable resolving it) on every call.
+     *
+     * @param int $ttl Time-to-live in seconds. 0 means "no expiration".
+     */
+    public function setAccountToken(?string $token, int $ttl = 0): void
+    {
+        if ($token === null || $token === '') {
+            $this->clearAccountToken();
+            return;
+        }
+
+        $this->store->set(self::ACCOUNT_TOKEN_KEY, $token, $ttl);
+    }
+
+    /**
+     * Returns the bearer token stored for the currently connected account, if any.
+     */
+    public function getAccountToken(): ?string
+    {
+        $token = $this->store->get(self::ACCOUNT_TOKEN_KEY);
+
+        return is_string($token) && $token !== '' ? $token : null;
+    }
+
+    public function clearAccountToken(): void
+    {
+        $this->store->delete(self::ACCOUNT_TOKEN_KEY);
     }
 
     /**
@@ -91,7 +150,7 @@ final class StripeClient
         return new self(
             $this->config->withAuthToken($authToken),
             $this->transport,
-            $this->signatureStore
+            $this->store
         );
     }
 
@@ -179,9 +238,12 @@ final class StripeClient
 
         $signature = Uuid::uuid4()->toString();
         $headers['X-Request-Signature'] = $signature;
-        $this->signatureStore->put($signature, self::SIGNATURE_TTL);
+        $this->store->set(self::signatureKey($signature), true, self::SIGNATURE_TTL);
+        $this->store->set(self::LAST_SIGNATURE_KEY, $signature, self::SIGNATURE_TTL);
 
-        $auth = $this->config->resolveAuthToken();
+        // An explicitly configured token (string or callable) always wins; otherwise
+        // fall back to whatever token is on record for the currently connected account.
+        $auth = $this->config->resolveAuthToken() ?? $this->getAccountToken();
         if ($auth !== null) {
             $headers['Authorization'] = 'Bearer ' . $auth;
         }
@@ -279,6 +341,15 @@ final class StripeClient
         $this->lastError = $error;
 
         throw $error;
+    }
+
+    /**
+     * Namespaced, fixed-length store key for a given signature, so raw UUIDs never
+     * end up as literal key material in whatever store implementation is in use.
+     */
+    private static function signatureKey(string $signature): string
+    {
+        return self::SIGNATURE_KEY_PREFIX . md5($signature);
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bluehost\StripePaymentsAPI\Tests\Unit;
 
+use Bluehost\StripePaymentsAPI\Client\StripeClient;
 use Bluehost\StripePaymentsAPI\Config;
 use Bluehost\StripePaymentsAPI\Exceptions\ApiException;
 use Bluehost\StripePaymentsAPI\Models\Customer;
@@ -73,5 +74,51 @@ final class StripeClientTest extends TestCaseBase
             environment: 'prod',
             brand: 'bluehost'
         );
+    }
+
+    public function testVerifySignatureAcceptsASignatureItJustSent(): void
+    {
+        $client = $this->makeClient();
+        Customer::create(['email' => 'jane@example.com']);
+
+        $signature = $this->lastRequest()['options']['headers']['X-Request-Signature'];
+
+        $this->assertTrue($client->verifySignature($signature));
+        $this->assertTrue(StripeClient::verify($signature));
+        $this->assertSame($signature, $client->getLastSignature());
+    }
+
+    public function testVerifySignatureRejectsAnUnknownSignature(): void
+    {
+        $client = $this->makeClient();
+
+        $this->assertFalse($client->verifySignature(Uuid::uuid4()->toString()));
+        $this->assertFalse($client->verifySignature(''));
+    }
+
+    public function testAccountTokenIsUsedWhenConfigHasNoExplicitAuthToken(): void
+    {
+        $client = $this->makeClient(authToken: null);
+
+        $client->setAccountToken('connected-account-token');
+        Customer::create(['email' => 'jane@example.com']);
+
+        $this->assertSame(
+            'Bearer connected-account-token',
+            $this->lastRequest()['options']['headers']['Authorization']
+        );
+
+        $client->clearAccountToken();
+        $this->assertNull($client->getAccountToken());
+    }
+
+    public function testExplicitAuthTokenOverridesTheStoredAccountToken(): void
+    {
+        $client = $this->makeClient();
+        $client->setAccountToken('should-be-ignored');
+
+        Customer::create(['email' => 'jane@example.com']);
+
+        $this->assertSame('Bearer test-token', $this->lastRequest()['options']['headers']['Authorization']);
     }
 }
