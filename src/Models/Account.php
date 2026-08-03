@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bluehost\StripePaymentsAPI\Models;
 
 use Bluehost\StripePaymentsAPI\Abstracts\ModelAbstract;
+use Bluehost\StripePaymentsAPI\Client\StripeClient;
 use Bluehost\StripePaymentsAPI\Traits\ObjectCreateTrait;
 use Bluehost\StripePaymentsAPI\Traits\ObjectDeleteTrait;
 use Bluehost\StripePaymentsAPI\Traits\ObjectReadTrait;
@@ -31,7 +32,9 @@ use Bluehost\StripePaymentsAPI\Traits\ObjectReadTrait;
  */
 class Account extends ModelAbstract
 {
-    use ObjectReadTrait;
+    use ObjectReadTrait {
+		read as read_trait;
+	}
     use ObjectCreateTrait;
     use ObjectDeleteTrait;
 
@@ -164,6 +167,26 @@ class Account extends ModelAbstract
 
         return self::$data_structure;
     }
+
+
+	/**
+	 * @param array<int, string> $expand Stripe fields to expand in the response.
+	 *
+	 * @return static
+	 */
+	public static function read(string $id = '', array $expand = [])
+	{
+		$account = self::read_trait($id, $expand);
+
+		if (! empty($account->token)) {
+			StripeClient::getDefault()->setAccountToken(
+				$account->token->auth,
+				$account->token->expires_in
+			);
+		}
+
+		return $account;
+	}
 
     /**
      * @param array<string, mixed> $raw
