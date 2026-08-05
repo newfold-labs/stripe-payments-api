@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bluehost\StripePaymentsAPI\Models;
 
 use Bluehost\StripePaymentsAPI\Abstracts\ModelAbstract;
+use Bluehost\StripePaymentsAPI\Client\StripeClient;
 use Bluehost\StripePaymentsAPI\Traits\ObjectCreateTrait;
 use Bluehost\StripePaymentsAPI\Traits\ObjectDeleteTrait;
 use Bluehost\StripePaymentsAPI\Traits\ObjectReadTrait;
@@ -31,7 +32,9 @@ use Bluehost\StripePaymentsAPI\Traits\ObjectReadTrait;
  */
 class Account extends ModelAbstract
 {
-    use ObjectReadTrait;
+    use ObjectReadTrait {
+		read as read_trait;
+	}
     use ObjectCreateTrait;
     use ObjectDeleteTrait;
 
@@ -71,10 +74,12 @@ class Account extends ModelAbstract
                     'default' => null,
                 ],
                 'secret' => [
+                    // Response-only (populated by the middleware); no default here, or
+                    // create() would send `secret: ""` on every account creation request.
                     'label' => 'Account secret',
                     'type' => 'text',
                     'required' => false,
-                    'default' => '',
+                    'default' => null,
                 ],
                 'email' => [
                     'label' => 'Admin email',
@@ -96,10 +101,11 @@ class Account extends ModelAbstract
                     'default' => null,
                 ],
                 'pmd_enabled' => [
+                    // Response-only; no default, same reasoning as 'secret' above.
                     'label' => 'Domain enabled',
                     'type' => 'bool',
                     'required' => false,
-                    'default' => false,
+                    'default' => null,
                 ],
                 'pmd_statuses' => [
                     'label' => 'Payment Method statuses for Domain',
@@ -108,16 +114,18 @@ class Account extends ModelAbstract
                     'default' => null,
                 ],
                 'charges_enabled' => [
+                    // Response-only; no default, same reasoning as 'secret' above.
                     'label' => 'Charges enabled flag',
                     'type' => 'bool',
                     'required' => false,
-                    'default' => false,
+                    'default' => null,
                 ],
                 'details_submitted' => [
+                    // Response-only; no default, same reasoning as 'secret' above.
                     'label' => 'Details submitted flag',
                     'type' => 'bool',
                     'required' => false,
-                    'default' => false,
+                    'default' => null,
                 ],
                 'verify_url' => [
                     'label' => 'Verification URL',
@@ -159,6 +167,26 @@ class Account extends ModelAbstract
 
         return self::$data_structure;
     }
+
+
+	/**
+	 * @param array<int, string> $expand Stripe fields to expand in the response.
+	 *
+	 * @return static
+	 */
+	public static function read(string $id = '', array $expand = [])
+	{
+		$account = self::read_trait($id, $expand);
+
+		if (! empty($account->token)) {
+			StripeClient::getDefault()->setAccountToken(
+				$account->token->auth,
+				$account->token->expires_in
+			);
+		}
+
+		return $account;
+	}
 
     /**
      * @param array<string, mixed> $raw
