@@ -21,6 +21,10 @@ use Bluehost\StripePaymentsAPI\Traits\ObjectReadTrait;
  * @property string|null             $cancel_url
  * @property array|null              $metadata
  * @property array|null              $subscription_data
+ * @property string|null             $billing_address_collection `auto` or `required`
+ * @property array|null              $phone_number_collection    `['enabled' => bool]`
+ * @property array|null              $shipping_address_collection `['allowed_countries' => ['IT', 'US']]`
+ * @property array|null              $customer_update            `address`, `name`, `shipping`: `auto` or `never`; needs `customer`
  * @property string|null             $status
  * @property string|null             $payment_status
  * @property string|null             $url
@@ -94,6 +98,57 @@ class CheckoutSession extends ModelAbstract
                     'type' => 'hash',
                     'required' => false,
                     'default' => null,
+                ],
+                'billing_address_collection' => [
+                    'label' => 'Billing address collection',
+                    'type' => 'select',
+                    'required' => false,
+                    'default' => null,
+                    'options' => [
+                        'auto' => 'auto',
+                        'required' => 'required',
+                    ],
+                ],
+                'phone_number_collection' => [
+                    'enabled' => [
+                        'label' => 'Phone number collection enabled',
+                        'type' => 'bool',
+                        // Not `required`: the validator reads a `false` as missing.
+                        'required' => false,
+                        'default' => null,
+                    ],
+                ],
+                'shipping_address_collection' => [
+                    'allowed_countries' => [
+                        'label' => 'Shipping allowed countries',
+                        'type' => 'array',
+                        'required' => true,
+                        'default' => null,
+                        'minItems' => 1,
+                    ],
+                ],
+                'customer_update' => [
+                    'address' => [
+                        'label' => 'Save billing address on customer',
+                        'type' => 'select',
+                        'required' => false,
+                        'default' => null,
+                        'options' => ['auto' => 'auto', 'never' => 'never'],
+                    ],
+                    'name' => [
+                        'label' => 'Save name on customer',
+                        'type' => 'select',
+                        'required' => false,
+                        'default' => null,
+                        'options' => ['auto' => 'auto', 'never' => 'never'],
+                    ],
+                    'shipping' => [
+                        'label' => 'Save shipping on customer',
+                        'type' => 'select',
+                        'required' => false,
+                        'default' => null,
+                        'options' => ['auto' => 'auto', 'never' => 'never'],
+                    ],
                 ],
             ];
         }

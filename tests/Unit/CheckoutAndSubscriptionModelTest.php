@@ -47,6 +47,100 @@ final class CheckoutAndSubscriptionModelTest extends TestCaseBase
         );
     }
 
+    public function testCreateCheckoutSessionSendsCollectionOptions(): void
+    {
+        $this->makeClient(static function () {
+            return ['status' => 200, 'headers' => [], 'body' => json_encode(['id' => 'cs_test_123'])];
+        });
+
+        CheckoutSession::create([
+            'mode' => 'payment',
+            'line_items' => [['price' => 'price_123', 'quantity' => 1]],
+            'success_url' => 'https://example.com/success',
+            'cancel_url' => 'https://example.com/cancel',
+            'customer' => 'cus_123',
+            'billing_address_collection' => 'required',
+            'phone_number_collection' => ['enabled' => true],
+            'shipping_address_collection' => ['allowed_countries' => ['IT', 'US']],
+            'customer_update' => ['address' => 'auto', 'name' => 'auto', 'shipping' => 'auto'],
+        ]);
+
+        $json = $this->lastRequest()['options']['json'];
+
+        $this->assertSame('required', $json['billing_address_collection']);
+        $this->assertSame(['enabled' => true], $json['phone_number_collection']);
+        $this->assertSame(['allowed_countries' => ['IT', 'US']], $json['shipping_address_collection']);
+        $this->assertSame(['address' => 'auto', 'name' => 'auto', 'shipping' => 'auto'], $json['customer_update']);
+    }
+
+    public function testCreateCheckoutSessionKeepsPhoneCollectionDisabled(): void
+    {
+        $this->makeClient(static function () {
+            return ['status' => 200, 'headers' => [], 'body' => json_encode(['id' => 'cs_test_123'])];
+        });
+
+        CheckoutSession::create([
+            'mode' => 'payment',
+            'line_items' => [['price' => 'price_123', 'quantity' => 1]],
+            'success_url' => 'https://example.com/success',
+            'cancel_url' => 'https://example.com/cancel',
+            'phone_number_collection' => ['enabled' => false],
+        ]);
+
+        $this->assertSame(['enabled' => false], $this->lastRequest()['options']['json']['phone_number_collection']);
+    }
+
+    public function testCreateCheckoutSessionOmitsUnsetCollectionOptions(): void
+    {
+        $this->makeClient(static function () {
+            return ['status' => 200, 'headers' => [], 'body' => json_encode(['id' => 'cs_test_123'])];
+        });
+
+        CheckoutSession::create([
+            'mode' => 'payment',
+            'line_items' => [['price' => 'price_123', 'quantity' => 1]],
+            'success_url' => 'https://example.com/success',
+            'cancel_url' => 'https://example.com/cancel',
+        ]);
+
+        $json = $this->lastRequest()['options']['json'];
+
+        foreach (['billing_address_collection', 'phone_number_collection', 'shipping_address_collection', 'customer_update'] as $key) {
+            $this->assertArrayNotHasKey($key, $json);
+        }
+    }
+
+    /**
+     * @dataProvider invalidCollectionOptions
+     *
+     * @param array<string, mixed> $extra
+     */
+    public function testCheckoutSessionRejectsInvalidCollectionOptions(array $extra): void
+    {
+        $this->makeClient();
+        $this->expectException(ValidationException::class);
+
+        CheckoutSession::create(array_merge([
+            'mode' => 'payment',
+            'line_items' => [['price' => 'price_123', 'quantity' => 1]],
+            'success_url' => 'https://example.com/success',
+            'cancel_url' => 'https://example.com/cancel',
+        ], $extra));
+    }
+
+    /**
+     * @return array<string, array{0: array<string, mixed>}>
+     */
+    public static function invalidCollectionOptions(): array
+    {
+        return [
+            'billing address value' => [['billing_address_collection' => 'always']],
+            'customer_update value' => [['customer_update' => ['shipping' => 'yes']]],
+            'no shipping countries' => [['shipping_address_collection' => ['allowed_countries' => []]]],
+            'shipping not an object' => [['shipping_address_collection' => 'IT']],
+        ];
+    }
+
     public function testCheckoutSessionRequiresValidCreateFields(): void
     {
         $this->makeClient();
