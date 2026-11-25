@@ -189,6 +189,36 @@ class Account extends ModelAbstract
 	}
 
     /**
+     * Persist a new public origin on an existing Connect account.
+     *
+     * Does not mint a new Stripe account. Caller must already hold an
+     * authenticated client token for $acctId.
+     *
+     * @param array<string, mixed> $data site_url, verify_url, return_url, webhook_url
+     *
+     * @return static
+     */
+    public static function reconnect(string $acctId, array $data)
+    {
+        $response = StripeClient::call(
+            'POST',
+            self::get_endpoint($acctId . '/reconnect'),
+            self::get_data($data)
+        );
+
+        $account = self::get(is_array($response) ? $response : []);
+
+        if (! empty($account->token)) {
+            StripeClient::getDefault()->setAccountToken(
+                $account->token->auth,
+                $account->token->expires_in
+            );
+        }
+
+        return $account;
+    }
+
+    /**
      * @param array<string, mixed> $raw
      *
      * @return static
