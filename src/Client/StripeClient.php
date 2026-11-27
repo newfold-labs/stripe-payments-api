@@ -103,6 +103,27 @@ final class StripeClient
     }
 
     /**
+     * Answers a challenge sent by the middleware to prove this site holds the
+     * account secret: base64( HMAC-SHA256( challenge, secret ) ).
+     *
+     * The library keeps no account secret, so the caller supplies it.
+     *
+     * @throws \InvalidArgumentException When the challenge or the secret is empty.
+     */
+    public function acceptChallenge(string $challenge, string $secret): string
+    {
+        if ($challenge === '') {
+            throw new \InvalidArgumentException('The challenge must not be empty.');
+        }
+
+        if ($secret === '') {
+            throw new \InvalidArgumentException('The account secret must not be empty.');
+        }
+
+        return base64_encode(hash_hmac('sha256', $challenge, $secret, true));
+    }
+
+    /**
      * Static facade, mirroring {@see self::call()}.
      */
     public static function verify(string $signature): bool

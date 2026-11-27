@@ -121,4 +121,35 @@ final class StripeClientTest extends TestCaseBase
 
         $this->assertSame('Bearer test-token', $this->lastRequest()['options']['headers']['Authorization']);
     }
+
+    public function testAcceptChallengeMatchesTheMiddlewareProofVector(): void
+    {
+        // Same vector as the middleware's RequestVerifier.proof() computes.
+        $this->assertSame(
+            'Ty8wqvSle9YKtHPI6cLN/vwYZyPUcn7W8x8ENTyROJo=',
+            $this->makeClient()->acceptChallenge('abc', 's3cret')
+        );
+    }
+
+    public function testAcceptChallengeDependsOnTheSecret(): void
+    {
+        $client = $this->makeClient();
+
+        $this->assertNotSame(
+            $client->acceptChallenge('abc', 's3cret'),
+            $client->acceptChallenge('abc', 'other')
+        );
+    }
+
+    public function testAcceptChallengeRefusesAnEmptyChallenge(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->makeClient()->acceptChallenge('', 's3cret');
+    }
+
+    public function testAcceptChallengeRefusesAMissingSecret(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->makeClient()->acceptChallenge('abc', '');
+    }
 }
